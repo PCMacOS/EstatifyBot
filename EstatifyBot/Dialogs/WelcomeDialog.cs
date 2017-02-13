@@ -46,27 +46,37 @@ namespace EstatifyBot.Dialogs
             var jsonUrL = new WebClient().DownloadString("http://estatify.mitzelos.com/all_properties.json");
             var converter = new ExpandoObjectConverter();
             dynamic jsn = JsonConvert.DeserializeObject<ExpandoObject>(jsonUrL, converter);
-            var review = 0;
-            string showReviw = null;
-            if (review != 0)
-            {
-                showReviw = " Review: " + review + "/5,";
-            }
-            return new List<Attachment>()
-            {
-                
-                GetHeroCard(
-                    jsn.properties[0].listing_name,
-                    "Adress: " + jsn.properties[0].address+"," + " Space type: " + jsn.properties[0].space_type+"," + " Dimensions: " + jsn.properties[0].dimensions+"τ.μ," + " Price: " + jsn.properties[0].price+"$," + " Charge per: " + jsn.properties[0].charge_per+"," + " Minimum stay time: " + jsn.properties[0].min_time+"," + showReviw + " Owner: " + jsn.properties[0].owner+".",
-                    jsn.properties[0].summary,
-                    new CardImage(url: "http://estatify.mitzelos.com" + jsn.properties[0].photos[0].medium_photo),
-                    new CardAction(ActionTypes.OpenUrl, "Go to this space!", value: "http://estatify.mitzelos.com/properties/" + jsn.properties[0].id)
+                var review = 0;
+                string showReviw = null;
+                if (review != 0)
+                {
+                    showReviw = " Review: " + review + "/5,";
+                }
+
+                return new List<Attachment>()
+                {
+
+                    GetHeroCard(
+                        jsn.properties[0].listing_name,
+                        "Adress: " + jsn.properties[0].address + "," + " Space type: " + jsn.properties[0].space_type +
+                        "," + " Dimensions: " + jsn.properties[0].dimensions + "τ.μ," + " Price: " +
+                        jsn.properties[0].price + "$," + " Charge per: " + jsn.properties[0].charge_per + "," +
+                        " Minimum stay time: " + jsn.properties[0].min_time + "," + showReviw + " Owner: " +
+                        jsn.properties[0].owner + ".",
+                        jsn.properties[0].summary,
+                        new CardImage(url: "http://estatify.mitzelos.com" + jsn.properties[0].photos[0].medium_photo),
+                        new CardAction(ActionTypes.OpenUrl, "Go to this space!",
+                            value: "http://estatify.mitzelos.com/properties/" + jsn.properties[0].id),
+                        new CardAction(ActionTypes.OpenUrl, "Open in map",
+                            value: "https://www.google.gr/maps/@" + jsn.properties[0].latitude+ "," +jsn.properties[0].longitude),
+                        new CardAction(ActionTypes.OpenUrl, "Go to Owner page!",
+                            value: "http://estatify.mitzelos.com/users/" + jsn.properties[0].user_id)
                     ),
-                
-            };
+
+                };
         }
         ///////////////////////Carusel///////////////////////
-        private static Attachment GetHeroCard(string title, string subtitle, string text, CardImage cardImage, CardAction cardAction)
+        private static Attachment GetHeroCard(string title, string subtitle, string text, CardImage cardImage, CardAction cardButton1, CardAction cardButton2, CardAction cardButton3)
         {
             var heroCard = new HeroCard
             {
@@ -74,7 +84,7 @@ namespace EstatifyBot.Dialogs
                 Subtitle = subtitle,
                 Text = text,
                 Images = new List<CardImage>() { cardImage },
-                Buttons = new List<CardAction>() { cardAction },
+                Buttons = new List<CardAction>() { cardButton1, cardButton2, cardButton3 },
             };
 
             return heroCard.ToAttachment();
