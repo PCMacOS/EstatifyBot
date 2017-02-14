@@ -18,27 +18,29 @@ using Newtonsoft.Json.Linq;
 
 namespace EstatifyBot.Dialogs
 {
+    [LuisModel("LuisAppID", "YourLuisID")]
     [Serializable()]
-    public class WelcomeDialog : IDialog
+    public class WelcomeDialog : LuisDialog<object>
     {
-        public async Task StartAsync(IDialogContext context)
+        [LuisIntent("Hi")]
+        public async Task SayHi(IDialogContext context, LuisResult result)
         {
             //await base.StartAsync(context);
-            await context.PostAsync("Hi there! I am EstatifyBot and Im here to help you for anything about Estatify");
-            context.Wait(ShowSpace);
+            await context.PostAsync("Hi there! I am EstatifyBot and Im here to help you for anything about Estatify. Ask me something for available listings... :)");
+            context.Wait(MessageReceived);
         }
 
-        
-        private async Task ShowSpace(IDialogContext context, IAwaitable<object> result)
+        [LuisIntent("Show Active Estate")]
+        public virtual async Task ShowSpace(IDialogContext context, LuisResult result)
         {
             var reply = context.MakeMessage();
             
             reply.AttachmentLayout = AttachmentLayoutTypes.Carousel;
             reply.Attachments = GetSpaceCardsAttachments();
-            await context.PostAsync("OK! This is the available spaces");
+            await context.PostAsync("Ok! These are our listings...");
             await context.PostAsync(reply);
 
-            //context.Wait(MessageReceived);
+            context.Wait(MessageReceived);
         }
 
         private static IList<Attachment> GetSpaceCardsAttachments()
@@ -46,34 +48,45 @@ namespace EstatifyBot.Dialogs
             var jsonUrL = new WebClient().DownloadString("http://estatify.mitzelos.com/all_properties.json");
             var converter = new ExpandoObjectConverter();
             dynamic jsn = JsonConvert.DeserializeObject<ExpandoObject>(jsonUrL, converter);
-                var review = 0;
+            List <Attachment> popa = new List<Attachment>();
+            for (int i = 0; i < jsn.properties.Count; i++)
+            {
                 string showReviw = null;
+                var review = 0;
+                for (int j = 0; j < (jsn.properties[i].review.Count); j++)
+                {
+                    review += jsn.properties[i].review[j].rating; 
+                }
+                if (jsn.properties[i].review.Count!=0) review = review/jsn.properties[i].review.Count;
+                else review = 0;
                 if (review != 0)
                 {
                     showReviw = " Review: " + review + "/5,";
                 }
-
-                return new List<Attachment>()
-                {
-
-                    GetHeroCard(
-                        jsn.properties[0].listing_name,
-                        "Adress: " + jsn.properties[0].address + "," + " Space type: " + jsn.properties[0].space_type +
-                        "," + " Dimensions: " + jsn.properties[0].dimensions + "τ.μ," + " Price: " +
-                        jsn.properties[0].price + "$," + " Charge per: " + jsn.properties[0].charge_per + "," +
+                popa.Add(GetHeroCard(
+                        jsn.properties[i].listing_name,
+                        "Adress: " + jsn.properties[i].address + "," + " Space type: " + jsn.properties[i].space_type +
+                        "," + " Dimensions: " + jsn.properties[i].dimensions + "τ.μ," + " Price: " +
+                        jsn.properties[i].price + "$," + " Charge per: " + jsn.properties[i].charge_per + "," +
                         " Minimum stay time: " + jsn.properties[0].min_time + "," + showReviw + " Owner: " +
-                        jsn.properties[0].owner + ".",
-                        jsn.properties[0].summary,
-                        new CardImage(url: "http://estatify.mitzelos.com" + jsn.properties[0].photos[0].medium_photo),
+                        jsn.properties[i].owner + ".",
+                        jsn.properties[i].summary,
+                        new CardImage(url: "http://estatify.mitzelos.com" + jsn.properties[i].photos[0].medium_photo),
                         new CardAction(ActionTypes.OpenUrl, "Go to this space!",
-                            value: "http://estatify.mitzelos.com/properties/" + jsn.properties[0].id),
+                            value: "http://estatify.mitzelos.com/properties/" + jsn.properties[i].id),
                         new CardAction(ActionTypes.OpenUrl, "Open in map",
-                            value: "https://www.google.gr/maps/@" + jsn.properties[0].latitude+ "," +jsn.properties[0].longitude),
+                            value: "https://www.google.com/maps?ll=" + jsn.properties[i].latitude + "," + jsn.properties[i].longitude+ "&z=16"),
                         new CardAction(ActionTypes.OpenUrl, "Go to Owner page!",
-                            value: "http://estatify.mitzelos.com/users/" + jsn.properties[0].user_id)
-                    ),
+                            value: "http://estatify.mitzelos.com/users/" + jsn.properties[i].user_id)
+                    ));}
+            return popa;
+        }
 
-                };
+        [LuisIntent("")]
+        public async Task None(IDialogContext context, LuisResult result)
+        {
+            await context.PostAsync("I have no idea what you are talking about. Plese resend me something");
+            context.Wait(MessageReceived);
         }
         ///////////////////////Carusel///////////////////////
         private static Attachment GetHeroCard(string title, string subtitle, string text, CardImage cardImage, CardAction cardButton1, CardAction cardButton2, CardAction cardButton3)
